@@ -25,7 +25,7 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Students + Attendance
