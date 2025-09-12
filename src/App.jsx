@@ -25,7 +25,7 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Students + Attendance
@@ -46,7 +46,7 @@ export default function App() {
 
   // Load data from Firebase
   useEffect(() => {
-    setLoading(false);
+    setLoading(true);
 
     const classRef = ref(db, `classes/${classId}`);
     const studentsRef = ref(db, `students/${classId}`);
