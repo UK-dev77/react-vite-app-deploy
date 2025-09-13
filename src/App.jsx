@@ -24,7 +24,6 @@ export default function App() {
   );
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -51,8 +50,6 @@ export default function App() {
 
   // Load data from Firebase
   useEffect(() => {
-    setLoading(true);
-
     const classRef = ref(db, `classes/${classId}`);
     const studentsRef = ref(db, `students/${classId}`);
     const attendanceRef = ref(db, `attendance/${classId}`);
@@ -81,7 +78,6 @@ export default function App() {
       } else {
         setStudents([]);
       }
-      setLoading(false);
     });
 
     const unsubscribeAttendance = onValue(attendanceRef, (snapshot) => {
@@ -257,14 +253,6 @@ export default function App() {
   };
 
   const classStats = getClassStats();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-900 via-violet-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-white text-xl animate-pulse">Loading...</div>
-      </div>
-    );
-  }
 
   const NavButton = ({ id, label, Icon }) => (
     <button
