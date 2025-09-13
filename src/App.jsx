@@ -12,16 +12,17 @@ import {
   UserCheck,
   UserX,
   Clock,
-  Menu,
+  Menu
 } from "lucide-react";
-import { ref, onValue, set, update, remove, get } from "firebase/database";
+import { ref, onValue, set, update, remove, get, off } from "firebase/database";
 import { db } from "./firebase";
+
+// This component assumes TailwindCSS is configured in the project.
+// Small CSS tweaks can be added in index.css for scrollbar or subtle shadows.
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("attendance");
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,21 +33,16 @@ export default function App() {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
 
   // New/Edit Student form state
-  const [newStudent, setNewStudent] = useState({
-    name: "",
-    rollNumber: "",
-    email: "",
-    phone: "",
-  });
+  const [newStudent, setNewStudent] = useState({ name: "", rollNumber: "", email: "", phone: "" });
 
-  // Class Settings (defaults)
+  // Class Settings (loaded from DB but with defaults)
   const [classSettings, setClassSettings] = useState({
     departmentName: "Computer Science Engineering",
     teacher: "Dr. Suresh Kumar",
-    semester: "Fifth Semester",
+    semester: "Fifth Semester"
   });
 
-  const classId = "class1"; // change for multiple classes
+  const classId = "class1"; // change if you want multiple classes
 
   // Load data from Firebase
   useEffect(() => {
@@ -56,37 +52,29 @@ export default function App() {
     const studentsRef = ref(db, `students/${classId}`);
     const attendanceRef = ref(db, `attendance/${classId}`);
 
-    // Listen for class info
-    const unsubscribeClass = onValue(classRef, (snapshot) => {
+    const classListener = onValue(classRef, (snapshot) => {
       const data = snapshot.val();
       if (data) setClassSettings((prev) => ({ ...prev, ...data }));
     });
 
-    // Listen for students
-    const unsubscribeStudents = onValue(studentsRef, (snapshot) => {
+    const studentsListener = onValue(studentsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const arr = Object.keys(data).map((key) => ({
-          id: key,
-          ...data[key],
-        }));
+        const arr = Object.keys(data).map((key) => ({ id: key, ...data[key] }));
+        // Sort by rollNumber or name for consistent listing
         arr.sort((a, b) => {
           const ra = a.rollNumber || "";
           const rb = b.rollNumber || "";
-          return (
-            ra.localeCompare(rb, undefined, { numeric: true }) ||
-            (a.name || "").localeCompare(b.name || "")
-          );
+          return ra.localeCompare(rb, undefined, { numeric: true }) || (a.name || "").localeCompare(b.name || "");
         });
         setStudents(arr);
       } else {
         setStudents([]);
       }
-      setLoading(false); // ✅ stop loading after students fetched
+      setLoading(false);
     });
 
-    // Listen for attendance
-    const unsubscribeAttendance = onValue(attendanceRef, (snapshot) => {
+    const attendanceListener = onValue(attendanceRef, (snapshot) => {
       const data = snapshot.val();
       if (!data) {
         setAttendanceRecords([]);
@@ -101,39 +89,30 @@ export default function App() {
             studentId,
             date,
             status: data[date][studentId].status,
-            remarks: data[date][studentId].remarks || "",
+            remarks: data[date][studentId].remarks || ""
           });
         });
       });
 
-      recordsArray.sort(
-        (a, b) =>
-          b.date.localeCompare(a.date) ||
-          a.studentId.localeCompare(b.studentId)
-      );
+      // Keep it sorted by date descending then by student
+      recordsArray.sort((a, b) => b.date.localeCompare(a.date) || a.studentId.localeCompare(b.studentId));
       setAttendanceRecords(recordsArray);
     });
 
-    // ✅ cleanup with unsubscribe
     return () => {
-      unsubscribeClass();
-      unsubscribeStudents();
-      unsubscribeAttendance();
+      off(classRef, 'value', classListener);
+      off(studentsRef, 'value', studentsListener);
+      off(attendanceRef, 'value', attendanceListener);
     };
   }, [classId]);
 
   // Helpers
   const getTodayAttendance = (studentId, date = selectedDate) =>
-    attendanceRecords.find(
-      (record) => record.studentId === studentId && record.date === date
-    );
+    attendanceRecords.find((record) => record.studentId === studentId && record.date === date);
 
   const updateAttendanceStatus = async (studentId, status, remarks = "") => {
     try {
-      await set(ref(db, `attendance/${classId}/${selectedDate}/${studentId}`), {
-        status,
-        remarks,
-      });
+      await set(ref(db, `attendance/${classId}/${selectedDate}/${studentId}`), { status, remarks });
     } catch (e) {
       console.error("Error updating attendance:", e);
     }
@@ -200,17 +179,12 @@ export default function App() {
       presentDays,
       lateDays,
       absentDays,
-      attendancePercentage:
-        totalDays > 0
-          ? Math.round(((presentDays + lateDays) / totalDays) * 100)
-          : 0,
+      attendancePercentage: totalDays > 0 ? Math.round(((presentDays + lateDays) / totalDays) * 100) : 0
     };
   };
 
   const getClassStats = () => {
-    const todayRecords = attendanceRecords.filter(
-      (r) => r.date === selectedDate
-    );
+    const todayRecords = attendanceRecords.filter((r) => r.date === selectedDate);
     const totalStudents = students.length;
     const presentCount = todayRecords.filter((r) => r.status === "present").length;
     const lateCount = todayRecords.filter((r) => r.status === "late").length;
@@ -222,10 +196,7 @@ export default function App() {
       lateCount,
       absentCount,
       notMarked,
-      attendancePercentage:
-        totalStudents > 0
-          ? Math.round(((presentCount + lateCount) / totalStudents) * 100)
-          : 0,
+      attendancePercentage: totalStudents > 0 ? Math.round(((presentCount + lateCount) / totalStudents) * 100) : 0
     };
   };
 
@@ -265,23 +236,18 @@ export default function App() {
     );
   }
 
-  // Reuse NavButton UI
+  // Small presentational components
   const NavButton = ({ id, label, Icon }) => (
     <button
-      onClick={() => {
-        setActiveTab(id);
-        setMobileMenuOpen(false);
-      }}
+      onClick={() => { setActiveTab(id); setMobileMenuOpen(false); }}
       className={`flex items-center px-4 py-2 rounded-lg transition-all duration-150 text-sm md:text-base font-medium ${
-        activeTab === id
-          ? "bg-white text-slate-800 shadow"
-          : "text-white hover:bg-white/10"
+        activeTab === id ? "bg-white text-slate-800 shadow" : "text-white hover:bg-white/10"
       }`}
       aria-pressed={activeTab === id}
     >
       <Icon className="w-4 h-4 mr-2" />
       <span className="hidden md:inline">{label}</span>
-      <span className="md:hidden">{label.split(" ")[0]}</span>
+      <span className="md:hidden">{label.split(' ')[0]}</span>
     </button>
   );
 
