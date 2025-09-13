@@ -46,7 +46,7 @@ export default function App() {
 
   // Load data from Firebase
   useEffect(() => {
-    setLoading(false);
+    setLoading(true);
 
     const classRef = ref(db, `classes/${classId}`);
     const studentsRef = ref(db, `students/${classId}`);
